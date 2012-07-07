@@ -104,6 +104,7 @@ define("examples/textview/textStyler", ['orion/textview/annotations'], function(
 	var HTML_MARKUP = 12;
 	var DOC_TAG = 13;
 	var TASK_TAG = 14;
+	var CSS_CLASS = 15;
 
 	// Styles 
 	var singleCommentStyle = {styleClass: "token_singleline_comment"};
@@ -118,6 +119,7 @@ define("examples/textview/textStyler", ['orion/textview/annotations'], function(
 	var spaceStyle = {styleClass: "token_space"};
 	var tabStyle = {styleClass: "token_tab"};
 	var caretLineStyle = {styleClass: "line_caret"};
+	var cssClassStyle = {styleClass: "token_css_class"};
 	
 	function Scanner (keywords, whitespacesVisible) {
 		this.keywords = keywords;
@@ -163,6 +165,18 @@ define("examples/textview/textStyler", ['orion/textview/annotations'], function(
 				default:
 					var isCSS = this.isCSS;
 					var off = this.offset - 1;
+					if (isCSS && c === 46) {
+						do {
+							var lastC = c;
+							c = this._read();
+							if (!((65 <= c && c <= 90) || (97 <= c && c <= 122)  ||  // LETTER (can be first char in class name)
+								(((48 <= c && c <= 57) || c === 45 || c === 95 ) && lastC !== 46 ))) {  // NUMBER, DASH, or UNDERSCORE (not valid as first char)
+								break;
+							}
+						} while(true);
+						this._unread(c);
+						return CSS_CLASS;
+					}
 					if (!isCSS && 48 <= c && c <= 57) {
 						var floating = false, exponential = false, hex = false, firstC = c;
 						do {
@@ -699,6 +713,7 @@ define("examples/textview/textStyler", ['orion/textview/annotations'], function(
 							style = stringStyle;
 						}
 						break;
+					case CSS_CLASS: style = cssClassStyle; break;
 					case DOC_COMMENT: 
 						this._parseComment(scanner.getData(), tokenStart, styles, docCommentStyle, token);
 						continue;
